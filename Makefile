@@ -38,10 +38,16 @@ docs: clean
 	uv run sphinx-apidoc -o ./docs/source/modules $(PROJ_SLUG)
 	uv run cd docs && uv run make html
 
+# datamodel-code-generator itself needs pydantic v2, while this package targets
+# pydantic v1, so it runs in an isolated environment via uvx. The generated
+# models stay on pydantic v1 through --output-model-type.
+CODEGEN = uvx --from 'datamodel-code-generator>=0.73,<1' datamodel-codegen \
+	--input-file-type jsonschema --output-model-type pydantic.BaseModel
+
 generate_models:
 	# can be deleted no usage
 	rm pydantic_schemas/sensor_actions.schema.json || true
 	# can be deleted due to state includes config
 	rm pydantic_schemas/sensor_configs.schema.json || true
-	uv run datamodel-codegen --input-file-type jsonschema --input pydantic_schemas/data_products.schema.json --output quakesaver_client/models/data_products.py
-	uv run datamodel-codegen --input-file-type jsonschema --input pydantic_schemas/sensor_state.schema.json --output quakesaver_client/models/sensor_state.py
+	$(CODEGEN) --input pydantic_schemas/data_products.schema.json --output quakesaver_client/models/data_products.py
+	$(CODEGEN) --input pydantic_schemas/sensor_state.schema.json --output quakesaver_client/models/sensor_state.py
