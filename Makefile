@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := build
 .PHONY: clean \
 		install install_dependencies install_pre_commit \
-		docs lint test build \
+		docs lint format test build \
 		generate_models
 
 # general variables
@@ -21,7 +21,7 @@ install_dependencies:
 	make build
 
 install_pre_commit:
-	uv run pre-commit install
+	uv run prek install
 
 install: install_dependencies install_pre_commit
 
@@ -29,7 +29,11 @@ build:
 	uv build
 
 lint:
-	uv run pre-commit run --all-files
+	uv run prek run --all-files
+
+format:
+	uv run ruff format .
+	uv run ruff check --fix .
 
 test:
 	uv run py.test tests/* -vv --cov-report html --cov=$(PROJ_SLUG) -s
