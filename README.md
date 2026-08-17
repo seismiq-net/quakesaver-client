@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/quakesaver-client)](https://pypi.org/project/quakesaver-client)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/quakesaver-client)
 [![Test](https://github.com/QuakeSaver/quakesaver-client/actions/workflows/test.yml/badge.svg)](https://github.com/QuakeSaver/quakesaver-client/actions/workflows/test.yml)
-<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+<a href="https://github.com/astral-sh/ruff"><img alt="Code style: ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json"></a>
 
 This is the client for the [QuakeSaver](https://quakesaver.net/) Sensor services.
 
