@@ -17,7 +17,7 @@ client = QSCloudClient(email=EMAIL, password=PASSWORD)
 
 Authenticate against the quakesaver server and download raw, as well as processed data.
 
-Please note, that for security reasons each login session is only valid for 15 minutes. Thus, the client is not designed for long-term connections but for repeated queries.
+Please note, that for security reasons each login session is only valid for 15 minutes. The client renews the session automatically when it expires, so long-running scripts keep working; it re-authenticates with the credentials you passed in.
 
 ```python
 """Example script for quakesaver_client usage."""
@@ -74,7 +74,7 @@ query = MeasurementQuery(
 )
 result = sensor.get_jma_intensity(query)
 print(result)
-result = sensor.get_peak_ground_acceleration(query)
+result = sensor.get_peak_horizontal_acceleration(query)
 print(result)
 result = sensor.get_spectral_intensity(query)
 print(result)
@@ -101,8 +101,8 @@ print(result)
 
 # Download station meta data as StationXML and store them in a local directory.
 file_path = sensor.get_stationxml(
-    starttime=start_time,
-    endtime=end_time,
+    start_time=start_time,
+    end_time=end_time,
     level="response",
     location_to_store=DATA_PATH,
 )
