@@ -1,7 +1,11 @@
 name: Test
 
 on:
+  # Restricted to main: an unfiltered `push` made every pull request run the
+  # suite twice, doubling the load the tests put on the shared test account.
   push:
+    branches:
+      - main
   pull_request:
 
 permissions:
@@ -11,6 +15,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      # The tests run against a live backend, so one flaky version should not
+      # hide the results of the others.
+      fail-fast: false
       matrix:
         python-version: [ "3.10", "3.11", "3.12", "3.13" ]
     steps:
