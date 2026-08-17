@@ -14,6 +14,24 @@ from quakesaver_client.errors import (
     WrongAuthenticationError,
 )
 
+MAX_ERROR_DETAIL_LENGTH = 500
+
+
+def _response_detail(response: Response) -> str:
+    """Summarise a response body for use in an error message."""
+    try:
+        payload = response.json()
+    except ValueError:
+        detail = response.text
+    else:
+        detail = payload
+        if isinstance(payload, dict):
+            detail = payload.get("detail", payload)
+    detail = str(detail).strip() or "<empty response body>"
+    if len(detail) > MAX_ERROR_DETAIL_LENGTH:
+        detail = f"{detail[:MAX_ERROR_DETAIL_LENGTH]}... (truncated)"
+    return detail
+
 
 def handle_response(response: Response) -> dict:
     """Parse check a response for encountered errors.
@@ -36,7 +54,10 @@ def handle_response(response: Response) -> dict:
             raise WrongAuthenticationError() from e
         if e.response.status_code == 422:
             raise CorruptedDataError() from e
-        raise UnknownError() from e
+        raise UnknownError(
+            f"{response.request.method} {response.url} "
+            f"failed with HTTP {response.status_code}: {_response_detail(response)}"
+        ) from e
 
     try:
         return response.json()
