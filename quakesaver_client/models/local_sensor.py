@@ -29,6 +29,21 @@ from quakesaver_client.models.measurement import (
 from quakesaver_client.models.sensor_state import SensorState
 from quakesaver_client.types import StationDetailLevel
 
+# A sensor on the local network only serves its own state and raw waveforms.
+# Everything derived from them is computed by the backend.
+_NO_MEASUREMENTS = (
+    "Local sensors do not serve measurements. "
+    "Use QSCloudClient to query them from the QuakeSaver backend."
+)
+_NO_DATA_PRODUCTS = (
+    "Local sensors do not serve data products. "
+    "Use QSCloudClient to query them from the QuakeSaver backend."
+)
+_NO_STATIONXML = (
+    "Local sensors do not serve StationXML metadata. "
+    "Use QSCloudClient to download it from the QuakeSaver backend."
+)
+
 
 class LocalSensor(SensorState):
     """A base schema for other schemas to derive from."""
@@ -52,8 +67,12 @@ class LocalSensor(SensorState):
         data_product_name: str,
         query: DataProductQuery,
     ) -> dict:
-        """Request data products of the sensor."""
-        ...
+        """Request data products of the sensor.
+
+        Raises:
+            NotImplementedError: Local sensors do not serve data products.
+        """
+        raise NotImplementedError(_NO_DATA_PRODUCTS)
 
     def get_event_records(self, query: DataProductQuery) -> EventRecordQueryResult:
         """Get Event Records of the sensor.
@@ -61,10 +80,10 @@ class LocalSensor(SensorState):
         Args:
             query: The query parameters like time limit and time frame.
 
-        Returns:
-            EventRecordQueryResult: The queried data products.
+        Raises:
+            NotImplementedError: Local sensors do not serve data products.
         """
-        ...
+        raise NotImplementedError(_NO_DATA_PRODUCTS)
 
     def get_hv_spectra(self, query: DataProductQuery) -> HVSpectraQueryResult:
         """Get HV Spectres of the sensor.
@@ -72,10 +91,10 @@ class LocalSensor(SensorState):
         Args:
             query: The query parameters like time limit and time frame.
 
-        Returns:
-            HVSpectraQueryResult: The queried data products.
+        Raises:
+            NotImplementedError: Local sensors do not serve data products.
         """
-        ...
+        raise NotImplementedError(_NO_DATA_PRODUCTS)
 
     def get_noise_autocorrelations(
         self, query: DataProductQuery
@@ -85,14 +104,18 @@ class LocalSensor(SensorState):
         Args:
             query: The query parameters like time limit and time frame.
 
-        Returns:
-            NoiseAutocorrelationQueryResult: The queried data products.
+        Raises:
+            NotImplementedError: Local sensors do not serve data products.
         """
-        ...
+        raise NotImplementedError(_NO_DATA_PRODUCTS)
 
     def _get_measurement(self, query: MeasurementQueryFull) -> MeasurementResult:
-        """Request measurements of the sensor."""
-        ...
+        """Request measurements of the sensor.
+
+        Raises:
+            NotImplementedError: Local sensors do not serve measurements.
+        """
+        raise NotImplementedError(_NO_MEASUREMENTS)
 
     def get_peak_horizontal_acceleration(
         self, query: MeasurementQuery
@@ -102,10 +125,10 @@ class LocalSensor(SensorState):
         Args:
             query: The query parameters like time frame and aggregator.
 
-        Returns:
-            MeasurementQuery: The queried data (if exists) as time series.
+        Raises:
+            NotImplementedError: Local sensors do not serve measurements.
         """
-        ...
+        raise NotImplementedError(_NO_MEASUREMENTS)
 
     def get_jma_intensity(self, query: MeasurementQuery) -> MeasurementResult:
         """Get the JMA Intensity measurement of the sensor.
@@ -113,10 +136,10 @@ class LocalSensor(SensorState):
         Args:
             query: The query parameters like time frame and aggregator.
 
-        Returns:
-            MeasurementQuery: The queried data (if exists) as time series.
+        Raises:
+            NotImplementedError: Local sensors do not serve measurements.
         """
-        ...
+        raise NotImplementedError(_NO_MEASUREMENTS)
 
     def get_rms_amplitude(self, query: MeasurementQuery) -> MeasurementResult:
         """Get the RMS Amplitude measurement of the sensor.
@@ -124,10 +147,10 @@ class LocalSensor(SensorState):
         Args:
             query: The query parameters like time frame and aggregator.
 
-        Returns:
-            MeasurementQuery: The queried data (if exists) as time series.
+        Raises:
+            NotImplementedError: Local sensors do not serve measurements.
         """
-        ...
+        raise NotImplementedError(_NO_MEASUREMENTS)
 
     def get_spectral_intensity(self, query: MeasurementQuery) -> MeasurementResult:
         """Get the Spectral Intensity measurement of the sensor.
@@ -135,10 +158,10 @@ class LocalSensor(SensorState):
         Args:
             query: The query parameters like time frame and aggregator.
 
-        Returns:
-            MeasurementQuery: The queried data (if exists) as time series.
+        Raises:
+            NotImplementedError: Local sensors do not serve measurements.
         """
-        ...
+        raise NotImplementedError(_NO_MEASUREMENTS)
 
     def get_rms_offset(self, query: MeasurementQuery) -> MeasurementResult:
         """Get the RMS Offset measurement of the sensor.
@@ -146,10 +169,10 @@ class LocalSensor(SensorState):
         Args:
             query: The query parameters like time frame and aggregator.
 
-        Returns:
-            MeasurementQuery: The queried data (if exists) as time series.
+        Raises:
+            NotImplementedError: Local sensors do not serve measurements.
         """
-        ...
+        raise NotImplementedError(_NO_MEASUREMENTS)
 
     def get_waveform_stream(self) -> WebsocketHandler:
         """Get a `WebsocketHandler` to serve waveform data."""
@@ -242,8 +265,12 @@ class LocalSensor(SensorState):
         level: StationDetailLevel = "station",
         location_to_store: Path | str = None,
     ) -> Path:
-        """Request FDSN StationXML metadata of the sensor."""
-        ...
+        """Request FDSN StationXML metadata of the sensor.
+
+        Raises:
+            NotImplementedError: Local sensors do not serve StationXML.
+        """
+        raise NotImplementedError(_NO_STATIONXML)
 
     class Config:  # noqa
         """Configuration subclass for pydantics BaseModel."""
