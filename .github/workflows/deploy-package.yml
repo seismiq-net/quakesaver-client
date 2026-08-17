@@ -1,7 +1,10 @@
 name: Deploy PyPI package
 
 on:
-  create:
+  # `create` fires for every new branch and ignores the `tags` filter, so this
+  # workflow used to attempt a real PyPI upload on every branch push. `push`
+  # with a tag filter is the trigger that actually restricts this to releases.
+  push:
     tags:
       - "*.*.*"
 
@@ -22,6 +25,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          # poetry-dynamic-versioning derives the version from the git tags, so
+          # the default shallow clone would publish this as 0.0.0.
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v4
         with:

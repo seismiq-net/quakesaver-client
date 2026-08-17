@@ -1,7 +1,9 @@
 name: Deploy Documentation
 
 on:
-  create:
+  # See deploy-package.yml: `create` ignores the `tags` filter and fires for
+  # every new branch.
+  push:
     tags:
       - "*.*.*"
 

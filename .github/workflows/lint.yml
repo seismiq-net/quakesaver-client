@@ -9,7 +9,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: "lint"
+  # Keyed by ref so that pushing one branch does not cancel another's lint run.
+  group: lint-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
