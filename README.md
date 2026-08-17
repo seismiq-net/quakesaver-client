@@ -28,7 +28,7 @@ client = QSCloudClient(email=EMAIL, password=PASSWORD)
 
 Authenticate against the quakesaver server and download raw, as well as processed data.
 
-Please note, that for security reasons each login session is only valid for 15 minutes. Thus, the client is not designed for long-term connections but for repeated queries.
+Please note, that for security reasons each login session is only valid for 15 minutes. The client renews the session automatically when it expires, so long-running scripts keep working; it re-authenticates with the credentials you passed in.
 
 ```python
 """Example script for quakesaver_client usage."""
@@ -85,7 +85,7 @@ query = MeasurementQuery(
 )
 result = sensor.get_jma_intensity(query)
 print(result)
-result = sensor.get_peak_ground_acceleration(query)
+result = sensor.get_peak_horizontal_acceleration(query)
 print(result)
 result = sensor.get_spectral_intensity(query)
 print(result)
@@ -112,8 +112,8 @@ print(result)
 
 # Download station meta data as StationXML and store them in a local directory.
 file_path = sensor.get_stationxml(
-    starttime=start_time,
-    endtime=end_time,
+    start_time=start_time,
+    end_time=end_time,
     level="response",
     location_to_store=DATA_PATH,
 )
@@ -132,9 +132,13 @@ for trace in stream.traces:
     print(trace.stats)
 ```
 
-## `QSLocalClient` Examples
+## `LocalSensor` Examples
 
-Interact with sensors on your local network using the `QSLocalClient`.
+Interact with sensors on your local network using the `LocalSensor`.
+
+Note that a local sensor only serves its own state and raw waveforms.
+Measurements, data products and StationXML metadata are computed by the
+backend, so query those through `QSCloudClient`.
 
 ### Streaming Data
 
@@ -158,16 +162,17 @@ asyncio.run(run())
 Download the latest 10 minutes from a local sensor and write that into a file:
 
 ```python
-from datetime import datetime, timezone
-from quakesaver_client import QSLocalClient
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-client = QSLocalClient()
-sensor = client.connect(url="qssensor.local")
+from quakesaver_client import LocalSensor
+
+sensor = LocalSensor.connect("qssensor.local")
 
 end_time = datetime.now(tz=timezone.utc)
 start_time = end_time - timedelta(minutes=10)
 
-file = Path('/tmp/my-miniseed.mseed')
+file = Path("/tmp/my-miniseed.mseed")
 file_path = sensor.get_waveform_data(file, start_time, end_time)
 print(file_path)
 
