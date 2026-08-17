@@ -5,12 +5,13 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, get_args
 
 import requests
 from pydantic import Extra, ValidationError
 
-from quakesaver_client.errors import CorruptedDataError
+from quakesaver_client.errors import CorruptedDataError, NoDataError
+from quakesaver_client.fdsnws import NoData
 from quakesaver_client.models.data_product_query import (
     DataProductQuery,
     EventRecordQueryResult,
@@ -255,6 +256,11 @@ class CloudSensor(SensorState):
             params=params,
         )
 
+        if response.status_code in get_args(NoData):
+            raise NoDataError(
+                f"No waveform data for sensor {self.uid} "
+                f"between {start_time} and {end_time}."
+            )
         if response.status_code != 200:
             raise CorruptedDataError(response.text)
 
@@ -298,6 +304,11 @@ class CloudSensor(SensorState):
             params=params,
         )
 
+        if response.status_code in get_args(NoData):
+            raise NoDataError(
+                f"No station metadata for sensor {self.uid} "
+                f"between {start_time} and {end_time}."
+            )
         if response.status_code != 200:
             raise CorruptedDataError(response.text)
 

@@ -176,7 +176,7 @@ class LocalSensor(SensorState):
         logging.debug("requesting waveform data for sensor %s.", self.uid)
 
         if start_time and end_time and start_time > end_time:
-            raise ValueError("start_time is before end_time")
+            raise ValueError("start_time must be before end_time")
 
         end_time = end_time or datetime.now(tz=timezone.utc)
         params = FDSNWSDataselectQuery(starttime=start_time, endtime=end_time)
@@ -215,7 +215,7 @@ class LocalSensor(SensorState):
         """
         logging.debug("requesting waveform data for sensor %s.", self.uid)
         if start_time and end_time and start_time > end_time:
-            raise ValueError("start_time is before end_time")
+            raise ValueError("start_time must be before end_time")
 
         end_time = end_time or datetime.now(tz=timezone.utc)
         params = FDSNWSDataselectQuery(starttime=start_time, endtime=end_time)
