@@ -1,4 +1,5 @@
 """local sensor tests."""
+
 import datetime
 from typing import Callable
 

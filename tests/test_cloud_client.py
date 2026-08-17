@@ -1,4 +1,5 @@
 """Tests for the QuakeSaver client."""
+
 import logging
 import os
 from datetime import datetime, timedelta
