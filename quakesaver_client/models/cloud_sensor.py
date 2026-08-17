@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import requests
 from pydantic import Extra, ValidationError
@@ -27,11 +28,14 @@ from quakesaver_client.models.warnings import SensorWarnings
 from quakesaver_client.types import StationDetailLevel
 from quakesaver_client.util import assure_output_path, handle_response
 
+if TYPE_CHECKING:
+    from quakesaver_client import QSCloudClient
+
 
 class CloudSensor(SensorState):
     """A base schema for other schemas to derive from."""
 
-    _headers: dict
+    _client: QSCloudClient
     _api_base_url: str
     _fdsn_base_url: str
 
@@ -45,14 +49,19 @@ class CloudSensor(SensorState):
         self: CloudSensor,
         api_base_url: str,
         fdsn_base_url: str,
-        headers: dict,
+        client: QSCloudClient,
         **data: dict,
     ) -> None:
         """Create an instance of the class."""
         super().__init__(**data)
-        self._headers = headers
+        self._client = client
         self._api_base_url = api_base_url
         self._fdsn_base_url = fdsn_base_url
+
+    @property
+    def _headers(self: CloudSensor) -> dict:
+        """The authorization headers, renewing the session token if needed."""
+        return self._client._get_authorization_headers()
 
     def _get_data_product(
         self: CloudSensor,

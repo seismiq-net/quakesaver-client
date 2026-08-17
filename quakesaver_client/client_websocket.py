@@ -6,6 +6,7 @@ import asyncio
 import base64
 import gzip
 import logging
+import random
 from datetime import timedelta
 from typing import Any, AsyncIterator
 
@@ -31,6 +32,12 @@ DTYPE_MAP: dict[DataUnit, Any] = {
 
 START_ACTION = WebSocketRequest(action="startWaveformStream")
 STOP_ACTION = WebSocketRequest(action="stopWaveformStream")
+
+# A sensor can be rebooting or off the network for a while, so reconnect
+# attempts are spaced out exponentially instead of retried in a tight loop.
+RECONNECT_INITIAL_DELAY = 1.0  # seconds
+RECONNECT_MAX_DELAY = 60.0  # seconds
+RECONNECT_BACKOFF_FACTOR = 2.0
 
 
 class TraceModel(TraceModelBase):
@@ -105,19 +112,33 @@ class WebsocketHandler:
         return self._session
 
     async def start(self) -> AsyncIterator[TraceModel]:
-        """Start the websocket connection."""
+        """Start the websocket connection.
+
+        Reconnects indefinitely when the sensor drops the connection, waiting
+        longer after each failed attempt up to `RECONNECT_MAX_DELAY`. The delay
+        is reset as soon as the sensor delivers data again.
+        """
         session = self._get_session()
+        delay = RECONNECT_INITIAL_DELAY
         async with session:
             while True:
                 try:
                     async for trace in self.create_websocket(session):
+                        delay = RECONNECT_INITIAL_DELAY
                         yield trace
-                except aiohttp.ServerDisconnectedError as e:
-                    logger.warning(f"{e}. Trying to reconnect.")
-                    await asyncio.sleep(1)
-
+                except aiohttp.ClientError as e:
+                    logger.warning("Websocket connection to %s failed: %s", self.url, e)
                 except Exception as e:
-                    logger.exception(f"{e}")
+                    logger.exception("Unexpected websocket error: %s", e)
+                else:
+                    logger.info("Sensor %s closed the websocket.", self.url)
+
+                # Spread reconnects out a little so that many clients losing the
+                # same sensor do not retry in lockstep.
+                wait = delay * (0.5 + random.random() / 2)
+                logger.debug("Reconnecting to %s in %.1f s.", self.url, wait)
+                await asyncio.sleep(wait)
+                delay = min(delay * RECONNECT_BACKOFF_FACTOR, RECONNECT_MAX_DELAY)
 
     async def stop(self) -> None:
         """Stop the websocket connection."""

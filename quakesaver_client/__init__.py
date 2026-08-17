@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 import logging
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any, Callable, TypeVar
 
@@ -17,18 +21,50 @@ from quakesaver_client.util import handle_response
 
 DecoratedFunction = TypeVar("DecoratedFunction", bound=Callable[..., Any])
 
+# Renew shortly before the token actually expires, so that a request started
+# just before the deadline is not rejected because of clock skew or latency.
+TOKEN_REFRESH_MARGIN = timedelta(seconds=60)
+# Assumed lifetime for tokens that carry no readable expiry claim.
+DEFAULT_TOKEN_LIFETIME = timedelta(minutes=15)
+
+
+def _read_token_expiry(token: Token) -> datetime | None:
+    """Read the expiry claim of a JWT access token.
+
+    Args:
+        token: The token to inspect.
+
+    Returns:
+        datetime | None: The expiry time, or None if it cannot be determined.
+    """
+    try:
+        payload = token.access_token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        claims = json.loads(base64.urlsafe_b64decode(payload))
+        return datetime.fromtimestamp(claims["exp"], tz=timezone.utc)
+    except (
+        IndexError,
+        KeyError,
+        TypeError,
+        ValueError,
+        OverflowError,
+        OSError,
+        binascii.Error,
+    ):
+        logging.debug("Could not read an expiry from the access token.")
+        return None
+
 
 def _needs_token(function: DecoratedFunction) -> DecoratedFunction:
     @wraps(function)
     def request_token_if_needed(
         self: QSCloudClient, *args: list, **kwargs: dict
     ) -> DecoratedFunction:
-        if not self._token:
+        if self._token_needs_renewal():
             logging.debug("QSCloudClient requesting user _token.")
             response = requests.post(
                 url=f"{self._api_base_url}/user/get_token",
-                data=f"username={self._email}&password={self._password}",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                data={"username": self._email, "password": self._password},
             )
             response_data = handle_response(response)
             try:
@@ -36,6 +72,9 @@ def _needs_token(function: DecoratedFunction) -> DecoratedFunction:
             except ValidationError as e:
                 raise CorruptedDataError() from e
             self._token = token
+            self._token_expires_at = _read_token_expiry(token) or (
+                datetime.now(tz=timezone.utc) + DEFAULT_TOKEN_LIFETIME
+            )
 
         return function(self, *args, **kwargs)
 
@@ -50,6 +89,7 @@ class QSCloudClient:
     _email: str
     _password: str
     _token: Token | None
+    _token_expires_at: datetime | None
 
     _api_base_url: str
     _fdsn_base_url: str
@@ -70,11 +110,24 @@ class QSCloudClient:
         self._email = email
         self._password = password
         self._token = None
+        self._token_expires_at = None
 
         self._base_domain = base_domain
 
         self._api_base_url = f"https://api.{base_domain}/api/v1"
         self._fdsn_base_url = f"https://fdsnws.{base_domain}/fdsnws"
+
+    def _token_needs_renewal(self: QSCloudClient) -> bool:
+        """Check whether a new session token has to be requested.
+
+        Returns:
+            bool: True if there is no token yet, or the current one is about
+                to expire.
+        """
+        if self._token is None or self._token_expires_at is None:
+            return True
+        deadline = self._token_expires_at - TOKEN_REFRESH_MARGIN
+        return datetime.now(tz=timezone.utc) >= deadline
 
     @_needs_token
     def _get_authorization_headers(self: QSCloudClient) -> dict:
@@ -113,7 +166,7 @@ class QSCloudClient:
             sensor = CloudSensor(
                 api_base_url=self._api_base_url,
                 fdsn_base_url=self._fdsn_base_url,
-                headers=self._get_authorization_headers(),
+                client=self,
                 **response_data,
             )
         except ValidationError as e:
